@@ -1,4 +1,5 @@
 import binascii
+from collections import OrderedDict
 
 from pyshark.packet.common import Pickleable, SlotsPickleable
 
@@ -88,35 +89,43 @@ class LayerFieldsContainer(str, Pickleable):
     in this container will be shown.
     """
 
-    def __new__(cls, main_field, *args, **kwargs):
+    def __new__(cls, main_field, pos, *args, **kwargs):
         if hasattr(main_field, 'get_default_value'):
             obj = str.__new__(cls, main_field.get_default_value(), *args, **kwargs)
         else:
             obj = str.__new__(cls, main_field, *args, **kwargs)
-        obj.fields = [main_field]
+        obj.fields = OrderedDict({pos: main_field})
         return obj
 
     def __dir__(self):
         return dir(type(self)) + list(self.__dict__.keys()) + dir(self.main_field)
 
-    def add_field(self, field):
-        self.fields.append(field)
+    def add_field(self, field, pos):
+        # self.fields.append(field)
+        self.fields[pos] = field
 
     @property
     def main_field(self):
-        return self.fields[0]
+        return list(self.fields.values())[0]
 
     @property
     def alternate_fields(self):
         """
         Return the alternate values of this field containers (non-main ones).
         """
-        return self.fields[1:]
+        return list(self.fields.values())[1:]
 
     @property
     def all_fields(self):
         """
         Returns all fields in a list, the main field followed by the alternate fields.
+        """
+        return list(self.fields.values())
+
+    @property 
+    def ordered_fields(self):
+        """
+        Returns all fields in a dictionary, keyed by the order they appear in the packet.
         """
         return self.fields
 

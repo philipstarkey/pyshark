@@ -21,14 +21,17 @@ class Layer(Pickleable):
         # We copy over all the fields from the XML object
         # Note: we don't read lazily from the XML because the lxml objects are very memory-inefficient
         # so we'd rather not save them.
+        pos = 0
+        self.xml_obj = xml_obj
         for field in xml_obj.findall('.//field'):
             attributes = dict(field.attrib)
             field_obj = LayerField(**attributes)
             if attributes['name'] in self._all_fields:
                 # Field name already exists, add this field to the container.
-                self._all_fields[attributes['name']].add_field(field_obj)
+                self._all_fields[attributes['name']].add_field(field_obj, pos)
             else:
-                self._all_fields[attributes['name']] = LayerFieldsContainer(field_obj)
+                self._all_fields[attributes['name']] = LayerFieldsContainer(field_obj, pos)
+            pos += 1
 
     def __getattr__(self, item):
         val = self.get_field(item)
@@ -296,7 +299,7 @@ class JsonLayer(Layer):
                                              full_name=self._full_name.split('.')[0])
                     for field_part in field]
 
-        return LayerFieldsContainer(LayerField(name=name, value=field))
+        return LayerFieldsContainer(LayerField(name=name, value=field), 0)
 
     def has_field(self, dotted_name):
         """
